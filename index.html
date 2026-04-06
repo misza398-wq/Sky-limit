@@ -1,77 +1,120 @@
-Oto zmodyfikowana wersja gry Sky Hopper ULTRA – zmniejszyłem wysokość skoku (niższy podskok) i przyspieszyłem tempo rozgrywki (szybsze narastanie prędkości przewijania). Wprowadzone zmiany znajdziesz w stałych J (siła skoku) oraz BS i przyroście spd w pętli aktualizacji.
-
-```html
 <!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sky Hopper ULTRA 🚀</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
-body{
-  background:linear-gradient(145deg,#030810,#06101e);
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  font-family:system-ui,'Segoe UI',sans-serif;overflow:hidden;
-  touch-action:manipulation;padding:10px;
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; 
+  height: 100%; 
+  overflow: hidden; 
+  background: #030810;
 }
-#wrap{
-  display:flex;flex-direction:column;align-items:center;
-  width:100%;max-width:430px;
-  padding:12px 10px 16px;
-  background:rgba(0,4,18,0.45);
-  border-radius:40px;
-  box-shadow:0 0 60px rgba(0,150,255,0.08),0 20px 50px rgba(0,0,0,0.7);
-  border:1px solid rgba(255,255,255,0.05);
+
+body {
+  background: linear-gradient(145deg, #030810, #06101e);
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  touch-action: none; /* Zapobiega przypadkowemu przewijaniu */
 }
-canvas{
-  width:100%;height:auto;border-radius:24px;display:block;
-  touch-action:none;cursor:pointer;
-  box-shadow:0 0 40px rgba(0,180,255,0.12),inset 0 0 30px rgba(0,0,0,0.5);
+
+#wrap {
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  justify-content: space-between;
+  width: 100%; 
+  height: 100%; 
+  max-width: 500px;
+  padding: 10px;
+  padding-bottom: env(safe-area-inset-bottom, 15px); /* Dla iPhone'ów */
+  background: rgba(0, 4, 18, 0.45);
+  box-shadow: 0 0 60px rgba(0, 150, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.7);
 }
-.hud{
-  display:flex;justify-content:space-around;align-items:center;
-  width:100%;margin:10px 0 8px;padding:7px 8px;
-  background:rgba(0,0,0,0.6);border-radius:50px;
-  border:1px solid rgba(255,255,255,0.07);backdrop-filter:blur(12px);
+
+/* Nowy kontener wymuszający poprawne skalowanie canvas na maxa */
+.canvas-container {
+  flex: 1;
+  width: 100%;
+  min-height: 0; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.hi{display:flex;align-items:center;gap:5px;font-size:.85rem;font-weight:700;color:rgba(255,255,255,0.6)}
-.hi .v{font-size:1.1rem;font-weight:900;letter-spacing:.5px}
-.sv{color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,.5)}
-.cv{color:#ffaa22}
-.bv{color:#cc99ff}
-.ctrls{display:flex;gap:10px;width:100%}
-.btn{
-  flex:1;max-width:115px;min-height:62px;
-  background:linear-gradient(180deg,#253870 0%,#151f48 100%);
-  border:2px solid rgba(80,130,220,.4);border-radius:55px;
-  color:#c0d4f8;font-size:2rem;font-weight:bold;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;
-  box-shadow:0 7px 0 #0a1030,0 10px 22px rgba(0,0,0,.55);
-  transition:transform .04s,box-shadow .04s;touch-action:manipulation;
+
+canvas {
+  max-width: 100%; 
+  max-height: 100%; 
+  object-fit: contain; /* Utrzymuje proporcje 400x640, wypełniając miejsce */
+  border-radius: 20px; 
+  display: block;
+  touch-action: none; 
+  cursor: pointer;
+  box-shadow: 0 0 40px rgba(0, 180, 255, 0.12), inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
-.btn:active,.btn.on{
-  transform:translateY(6px);
-  box-shadow:0 1px 0 #0a1030,0 4px 10px rgba(0,0,0,.4);
-  border-color:rgba(100,200,255,.5);color:#88ccff;
+
+.hud {
+  display: flex; justify-content: space-around; align-items: center;
+  width: 100%; margin: 10px 0; padding: 10px 8px;
+  background: rgba(0, 0, 0, 0.6); border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.07); backdrop-filter: blur(12px);
+  flex-shrink: 0;
 }
-#jBtn{max-width:148px;font-size:1.25rem;letter-spacing:-.3px}
-@keyframes shk{
-  0%,100%{transform:translate(0,0)}
-  20%{transform:translate(-9px,6px)}40%{transform:translate(9px,-6px)}
-  60%{transform:translate(-5px,4px)}80%{transform:translate(5px,-3px)}
+
+.hi { display: flex; align-items: center; gap: 5px; font-size: .85rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
+.hi .v { font-size: 1.1rem; font-weight: 900; letter-spacing: .5px; }
+.sv { color: #ffd700; text-shadow: 0 0 8px rgba(255, 215, 0, .5); }
+.cv { color: #ffaa22; }
+.bv { color: #cc99ff; }
+
+.ctrls { 
+  display: flex; gap: 10px; width: 100%; flex-shrink: 0;
 }
-.shk{animation:shk .35s both}
-@media(max-width:500px){
-  .btn{min-height:55px;font-size:1.7rem}
-  #jBtn{font-size:1.05rem}
+
+.btn {
+  flex: 1; min-height: 65px;
+  background: linear-gradient(180deg, #253870 0%, #151f48 100%);
+  border: 2px solid rgba(80, 130, 220, .4); border-radius: 55px;
+  color: #c0d4f8; font-size: 2rem; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 7px 0 #0a1030, 0 10px 22px rgba(0, 0, 0, .55);
+  transition: transform .04s, box-shadow .04s; touch-action: manipulation;
+}
+
+.btn:active, .btn.on {
+  transform: translateY(6px);
+  box-shadow: 0 1px 0 #0a1030, 0 4px 10px rgba(0, 0, 0, .4);
+  border-color: rgba(100, 200, 255, .5); color: #88ccff;
+}
+
+#jBtn { flex: 1.5; font-size: 1.35rem; letter-spacing: -.3px; }
+
+@keyframes shk {
+  0%, 100% { transform: translate(0, 0) }
+  20% { transform: translate(-9px, 6px) } 40% { transform: translate(9px, -6px) }
+  60% { transform: translate(-5px, 4px) } 80% { transform: translate(5px, -3px) }
+}
+.shk { animation: shk .35s both; }
+
+@media(max-width: 500px) {
+  .btn { min-height: 60px; font-size: 1.7rem; }
+  #jBtn { font-size: 1.15rem; }
+  #wrap { border-radius: 0; background: transparent; box-shadow: none; padding: 8px; }
+  canvas { border-radius: 14px; }
 }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <canvas id="c" width="400" height="640"></canvas>
+  <div class="canvas-container">
+    <canvas id="c" width="400" height="640"></canvas>
+  </div>
   <div class="hud">
     <div class="hi">🏆 <span class="v sv" id="sV">0</span></div>
     <div class="hi">🪙 <span class="v cv" id="cV">0</span></div>
@@ -114,12 +157,8 @@ const sfx={
   over:  ()=>{tone(430,100,.5,'sawtooth',.09);setTimeout(()=>tone(320,75,.5,'sawtooth',.07),260)},
 };
 
-/* ─── KONSTANTY – ZMIENIONE: niższy skok i szybsze tempo ─── */
-const G=.44,           // grawitacja bez zmian
-      J=-9.8,          // REDUKCJA WYSOKOŚCI SKOKU (było -12.5)
-      HS=4.6,          // prędkość boczna bez zmian
-      PR=13,           // promień gracza
-      BS=0.9;          // WIĘKSZA PRĘDKOŚĆ POCZĄTKOWA (było 0.7)
+/* ─── CONSTANTS ──────────────────────────────────────────── */
+const G=.44,J=-12.5,HS=4.6,PR=13,BS=.7;
 
 /* ─── STATE ──────────────────────────────────────────────── */
 let mode,plats,coins,parts,ftxts,clouds;
@@ -180,6 +219,7 @@ function init(){
   for(let i=0;i<14;i++){plats.push(mkPlat(gy,i<3?'norm':''));gy-=rnd(38,62);}
   document.getElementById('wrap').classList.remove('shk');
   upHUD();
+  // Hint texts
   setTimeout(()=>ft(W/2,H/2-80,'🪙 Zbieraj monety!','#ffd700',16),800);
   setTimeout(()=>ft(W/2,H/2-60,'⬆ SKOK = podwójny skok!','#88ffff',14),2000);
 }
@@ -262,9 +302,8 @@ function update(){
   let minY=H;for(let p of plats)if(p.y<minY)minY=p.y;
   while(minY>80){const ny=minY-rnd(40,64);plats.push(mkPlat(ny));minY=ny;}
 
-  // ⚡ PRZYSPIESZONE TEMPO – szybszy wzrost prędkości przewijania ⚡
-  if(frame%120===0 && spd<5.8) spd+=0.05;   // było 0.03 → teraz 0.05
-
+  // Difficulty ramp
+  if(frame%120===0&&spd<5.8)spd+=.03;
   score+=spd*.32;
 
   if(pl.y>H+55)gameOver();
@@ -346,6 +385,7 @@ function drawBg(){
     const sx=(i*53+17)%W,sy=(i*37+11+frame*.07)%H;
     const sr=i%9===0?1.8:i%3===0?1.1:.65;
     ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
+    // Twinkle spikes on bigger stars
     if(i%9===0&&b>.4){
       ctx.strokeStyle='rgba(255,240,180,.4)';ctx.lineWidth=.5;
       ctx.beginPath();ctx.moveTo(sx-4,sy);ctx.lineTo(sx+4,sy);ctx.stroke();
@@ -383,8 +423,10 @@ function drawPlats(){
     gr.addColorStop(0,s.t);gr.addColorStop(1,s.b);
     ctx.fillStyle=gr;rr(p.x,p.y,p.w,p.h,6);ctx.fill();
     ctx.shadowBlur=0;
+    // Shine strip
     ctx.fillStyle=s.sh;rr(p.x+4,p.y+2,p.w-8,3,2);ctx.fill();
 
+    // Bouncy springs
     if(p.type==='boun'){
       const sh=8+p.sA*14;
       for(let i=0;i<4;i++){
@@ -394,18 +436,21 @@ function drawPlats(){
         ctx.fillStyle=sg;ctx.fillRect(sx-2.5,p.y-sh,5,sh);
       }
       ctx.fillStyle='#ffdd00';rr(p.x+6,p.y-sh-4,p.w-12,5,3);ctx.fill();
+      // Spring coils visual
       ctx.strokeStyle='rgba(255,180,0,.4)';ctx.lineWidth=1;
       for(let i=0;i<4;i++){
         const sx=p.x+p.w*(i+1)/5;
         ctx.beginPath();ctx.arc(sx,p.y-sh*.5,3,0,Math.PI);ctx.stroke();
       }
     }
+    // Moving arrows
     if(p.type==='move'){
       ctx.globalAlpha=p.al*.65;ctx.fillStyle='#e0aaff';
       ctx.font='bold 7px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(p.vx>0?'→ → →':'← ← ←',p.x+p.w/2,p.y+p.h/2+1);
       ctx.textBaseline='alphabetic';
     }
+    // Cracks for breaking
     if(p.bking){
       ctx.globalAlpha=.8;ctx.strokeStyle='#ff8800';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.moveTo(p.x+p.w*.33,p.y);ctx.lineTo(p.x+p.w*.44,p.y+p.h);ctx.stroke();
@@ -444,7 +489,7 @@ function drawCoins(){
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
-/* ─── DRAW: PLAYER ───────────────────────────────────────── */
+/* ─── DRAW: PLAYER (alien blob) ──────────────────────────── */
 function drawPlayer(){
   const sqx=clamp(2-pl.sq,.7,1.3);
   const sqy=clamp(pl.sq,.7,1.4);
@@ -452,40 +497,49 @@ function drawPlayer(){
   ctx.translate(pl.x,pl.y);
   ctx.scale(sqx,sqy);
 
+  // Body glow
   ctx.shadowBlur=24;ctx.shadowColor='#00ccff';
+  // Body gradient
   const bg=ctx.createRadialGradient(-4,-4,2,0,0,PR+2);
   bg.addColorStop(0,'#b0f0ff');bg.addColorStop(.55,'#00b8ff');bg.addColorStop(1,'#0055bb');
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(0,0,PR,0,Math.PI*2);ctx.fill();
   ctx.shadowBlur=0;
 
+  // Shine on body
   ctx.globalAlpha=.35;ctx.fillStyle='white';
   ctx.beginPath();ctx.ellipse(-4,-5,5,3.5,-.4,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
+  // Eyes — look direction
   const lkX=pl.vx>1.5?3:pl.vx<-1.5?-3:0;
   const lkY=pl.vy<-4?-2:1;
   ctx.fillStyle='white';
   ctx.beginPath();ctx.ellipse(-5,-3,4.2,3.8,0,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.ellipse(5,-3,4.2,3.8,0,0,Math.PI*2);ctx.fill();
+  // Pupils
   ctx.fillStyle='#002277';
   ctx.beginPath();ctx.arc(-5+lkX*.5,-3+lkY*.5,2.4,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(5+lkX*.5,-3+lkY*.5,2.4,0,Math.PI*2);ctx.fill();
+  // Eye shine
   ctx.fillStyle='white';
   ctx.beginPath();ctx.arc(-3.8+lkX*.5,-4.2+lkY*.5,.9,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(6.2+lkX*.5,-4.2+lkY*.5,.9,0,Math.PI*2);ctx.fill();
 
+  // Mouth — changes with velocity
   ctx.strokeStyle='#002277';ctx.lineWidth=1.7;ctx.lineCap='round';
   ctx.beginPath();
-  if(pl.vy<-5)       ctx.arc(0,2.5,4.5,.15,Math.PI-.15);
-  else if(pl.vy>9)   ctx.arc(0,5.5,3.5,Math.PI+.3,2*Math.PI-.3);
-  else               ctx.arc(0,3,4,.2,Math.PI-.2);
+  if(pl.vy<-5)       ctx.arc(0,2.5,4.5,.15,Math.PI-.15);    // big happy smile going up
+  else if(pl.vy>9)   ctx.arc(0,5.5,3.5,Math.PI+.3,2*Math.PI-.3); // scared falling
+  else               ctx.arc(0,3,4,.2,Math.PI-.2);           // normal smile
   ctx.stroke();
 
+  // Cheeks
   ctx.globalAlpha=.3;ctx.fillStyle='#ff88aa';
   ctx.beginPath();ctx.ellipse(-7,1,3.5,2.2,0,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.ellipse(7,1,3.5,2.2,0,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
+  // Antennae
   ctx.lineWidth=1.6;
   for(let s of[-1,1]){
     const ax=s*5,ay=-PR+2,bx=s*7.5,by=-PR-8;
@@ -497,6 +551,7 @@ function drawPlayer(){
     ctx.shadowBlur=0;
   }
 
+  // Double-jump ring (dashed glow when available)
   if(pl.dj>0){
     ctx.globalAlpha=.35+.2*Math.sin(frame*.25);
     ctx.strokeStyle='#88ffff';ctx.lineWidth=1.5;
@@ -529,12 +584,13 @@ function drawFT(){
   ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
-/* ─── DRAW: HUD ──────────────────────────────────────────── */
+/* ─── DRAW: HUD (on canvas) ──────────────────────────────── */
 function drawHUD(){
   const z=getZone();
   ctx.globalAlpha=.55;ctx.fillStyle='white';ctx.font='12px Arial';
   ctx.textAlign='right';ctx.fillText(z.n,W-10,18);ctx.globalAlpha=1;
 
+  // Speed bar
   const sf=clamp((spd-BS)/(5.8-BS),0,1);
   const bw=62,bh=5,bx=10,by=10;
   ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(bx,by,bw,bh);
@@ -544,6 +600,7 @@ function drawHUD(){
   ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='9px Arial';ctx.textAlign='left';
   ctx.fillText('PRĘDKOŚĆ',bx,by-2);
 
+  // DJ hint
   if(pl.dj>0&&mode==='play'){
     ctx.fillStyle='rgba(136,255,255,.8)';ctx.font='bold 10px Arial';
     ctx.fillText('⬆ 2x SKOK!',bx,by+bh+14);
@@ -553,16 +610,20 @@ function drawHUD(){
 
 /* ─── DRAW: GAME OVER ────────────────────────────────────── */
 function drawOver(){
+  // Dim
   ctx.fillStyle='rgba(0,0,0,.84)';ctx.fillRect(0,0,W,H);
+  // Panel
   ctx.fillStyle='rgba(6,14,40,.96)';rr(W/2-158,H/2-168,316,310,26);ctx.fill();
   ctx.strokeStyle='rgba(100,160,255,.25)';ctx.lineWidth=1.5;
   rr(W/2-158,H/2-168,316,310,26);ctx.stroke();
 
   ctx.textAlign='center';
+  // Title
   ctx.shadowBlur=28;ctx.shadowColor='#ff3333';
   ctx.fillStyle='#ff4444';ctx.font='bold 46px Arial';
   ctx.fillText('KONIEC!',W/2,H/2-108);ctx.shadowBlur=0;
 
+  // New record badge
   if(Math.floor(score)>=hi&&hi>0){
     const gr2=ctx.createLinearGradient(W/2-100,0,W/2+100,0);
     gr2.addColorStop(0,'#ff9900');gr2.addColorStop(.5,'#ffd700');gr2.addColorStop(1,'#ff9900');
@@ -578,9 +639,11 @@ function drawOver(){
   ctx.fillStyle='#cc99ff';
   ctx.fillText('⭐ Rekord: '+Math.floor(hi),W/2,H/2+30);
 
+  // Platform legend
   ctx.font='12px Arial';ctx.fillStyle='rgba(255,255,255,.5)';
   ctx.fillText('🟢 normalna  🟣 ruchoma  🟠 sprężyna  🔴 krucha',W/2,H/2+62);
 
+  // Restart button
   const pulse=.93+.07*Math.sin(frame*.12);
   ctx.save();ctx.translate(W/2,H/2+108);ctx.scale(pulse,pulse);
   const bg2=ctx.createLinearGradient(0,-22,0,22);
@@ -661,4 +724,3 @@ loop();
 </script>
 </body>
 </html>
-```
