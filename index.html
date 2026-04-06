@@ -20,7 +20,7 @@ body {
   align-items: center; 
   justify-content: center;
   font-family: system-ui, 'Segoe UI', sans-serif;
-  touch-action: none; /* Zapobiega przypadkowemu przewijaniu */
+  touch-action: none;
 }
 
 #wrap {
@@ -32,12 +32,11 @@ body {
   height: 100%; 
   max-width: 500px;
   padding: 10px;
-  padding-bottom: env(safe-area-inset-bottom, 15px); /* Dla iPhone'ów */
+  padding-bottom: env(safe-area-inset-bottom, 15px);
   background: rgba(0, 4, 18, 0.45);
   box-shadow: 0 0 60px rgba(0, 150, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.7);
 }
 
-/* Nowy kontener wymuszający poprawne skalowanie canvas na maxa */
 .canvas-container {
   flex: 1;
   width: 100%;
@@ -50,7 +49,7 @@ body {
 canvas {
   max-width: 100%; 
   max-height: 100%; 
-  object-fit: contain; /* Utrzymuje proporcje 400x640, wypełniając miejsce */
+  object-fit: contain; 
   border-radius: 20px; 
   display: block;
   touch-action: none; 
@@ -66,10 +65,11 @@ canvas {
   flex-shrink: 0;
 }
 
-.hi { display: flex; align-items: center; gap: 5px; font-size: .85rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
-.hi .v { font-size: 1.1rem; font-weight: 900; letter-spacing: .5px; }
+.hi { display: flex; align-items: center; gap: 4px; font-size: .8rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
+.hi .v { font-size: 1.05rem; font-weight: 900; letter-spacing: .5px; }
 .sv { color: #ffd700; text-shadow: 0 0 8px rgba(255, 215, 0, .5); }
 .cv { color: #ffaa22; }
+.fv { color: #44ffaa; text-shadow: 0 0 6px rgba(68, 255, 170, .4); }
 .bv { color: #cc99ff; }
 
 .ctrls { 
@@ -116,9 +116,10 @@ canvas {
     <canvas id="c" width="400" height="640"></canvas>
   </div>
   <div class="hud">
-    <div class="hi">🏆 <span class="v sv" id="sV">0</span></div>
-    <div class="hi">🪙 <span class="v cv" id="cV">0</span></div>
-    <div class="hi">⭐ <span class="v bv" id="bV">0</span></div>
+    <div class="hi" title="Punkty">🏆 <span class="v sv" id="sV">0</span></div>
+    <div class="hi" title="Wartość Monet">🪙 <span class="v cv" id="cV">0</span></div>
+    <div class="hi" title="Obecne Piętro">🏢 <span class="v fv" id="fV">0</span></div>
+    <div class="hi" title="Rekord Piętra">👑 <span class="v bv" id="bV">0</span></div>
   </div>
   <div class="ctrls">
     <div class="btn" id="lBtn">◀</div>
@@ -162,8 +163,10 @@ const G=.44,J=-12.5,HS=4.6,PR=13,BS=.7;
 
 /* ─── STATE ──────────────────────────────────────────────── */
 let mode,plats,coins,parts,ftxts,clouds;
-let pl,spd,score,cHeld,frame;
-let hi=+(localStorage.getItem('sh2')||0);
+let pl,spd,score,cVal,frame;
+let yClimbed,floor;
+let hi=+(localStorage.getItem('sh2_score')||0);
+let hiFloor=+(localStorage.getItem('sh2_floor')||0);
 let combo,lastCoinF;
 let lP=false,rP=false;
 
@@ -209,7 +212,8 @@ function mkC(x,y,type,ref){
 
 /* ─── INIT ───────────────────────────────────────────────── */
 function init(){
-  mode='play';spd=BS;score=0;cHeld=0;frame=0;combo=0;lastCoinF=-999;
+  mode='play';spd=BS;score=0;cVal=0;frame=0;combo=0;lastCoinF=-999;
+  yClimbed=0;floor=0;
   parts=[];ftxts=[];plats=[];coins=[];
   pl={x:W/2,y:H-100,vx:0,vy:0,sq:1,dj:1};
   clouds=Array.from({length:9},()=>({x:rnd(0,W),y:rnd(0,H),w:rnd(55,135),h:rnd(16,34),sp:rnd(.07,.22),a:rnd(.04,.1)}));
@@ -240,6 +244,10 @@ function update(){
   // Wrap screen
   if(pl.x>W+PR)pl.x=-PR;
   if(pl.x<-PR)pl.x=W+PR;
+
+  // Height and Floors calculation
+  yClimbed += spd;
+  floor = Math.floor(yClimbed / 80); // Każde pokonane 80 pikseli to nowe piętro
 
   // Platforms
   for(let p of plats){
@@ -282,7 +290,10 @@ function update(){
     if(c.collected)continue;
     const dx=pl.x-c.x,dy=pl.y-c.y;
     if(dx*dx+dy*dy<(PR+c.r+4)**2){
-      c.collected=true;cHeld++;score+=c.pts;
+      c.collected=true;
+      cVal+=c.pts; // Dodawanie realnej wartości punktowej monet
+      score+=c.pts;
+      
       if(frame-lastCoinF<32){
         combo++;
         if(combo>=3){const b=combo*12;score+=b;ft(pl.x,pl.y-32,`COMBO x${combo}! +${b}💥`,'#ff9900',17);sfx.combo();}
@@ -339,15 +350,19 @@ function collide(){
 function gameOver(){
   if(mode!=='play')return;
   mode='over';sfx.over();
-  if(score>hi){hi=Math.floor(score);localStorage.setItem('sh2',hi);}
+  
+  if(score>hi){hi=Math.floor(score);localStorage.setItem('sh2_score',hi);}
+  if(floor>hiFloor){hiFloor=floor;localStorage.setItem('sh2_floor',hiFloor);}
+  
   document.getElementById('wrap').classList.add('shk');
   setTimeout(()=>document.getElementById('wrap').classList.remove('shk'),380);
 }
 
 function upHUD(){
   document.getElementById('sV').textContent=Math.floor(score);
-  document.getElementById('cV').textContent=cHeld;
-  document.getElementById('bV').textContent=Math.floor(hi);
+  document.getElementById('cV').textContent=cVal;
+  document.getElementById('fV').textContent=floor;
+  document.getElementById('bV').textContent=hiFloor;
 }
 
 /* ─── DRAW HELPERS ───────────────────────────────────────── */
@@ -385,7 +400,6 @@ function drawBg(){
     const sx=(i*53+17)%W,sy=(i*37+11+frame*.07)%H;
     const sr=i%9===0?1.8:i%3===0?1.1:.65;
     ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
-    // Twinkle spikes on bigger stars
     if(i%9===0&&b>.4){
       ctx.strokeStyle='rgba(255,240,180,.4)';ctx.lineWidth=.5;
       ctx.beginPath();ctx.moveTo(sx-4,sy);ctx.lineTo(sx+4,sy);ctx.stroke();
@@ -436,7 +450,6 @@ function drawPlats(){
         ctx.fillStyle=sg;ctx.fillRect(sx-2.5,p.y-sh,5,sh);
       }
       ctx.fillStyle='#ffdd00';rr(p.x+6,p.y-sh-4,p.w-12,5,3);ctx.fill();
-      // Spring coils visual
       ctx.strokeStyle='rgba(255,180,0,.4)';ctx.lineWidth=1;
       for(let i=0;i<4;i++){
         const sx=p.x+p.w*(i+1)/5;
@@ -499,7 +512,6 @@ function drawPlayer(){
 
   // Body glow
   ctx.shadowBlur=24;ctx.shadowColor='#00ccff';
-  // Body gradient
   const bg=ctx.createRadialGradient(-4,-4,2,0,0,PR+2);
   bg.addColorStop(0,'#b0f0ff');bg.addColorStop(.55,'#00b8ff');bg.addColorStop(1,'#0055bb');
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(0,0,PR,0,Math.PI*2);ctx.fill();
@@ -510,27 +522,25 @@ function drawPlayer(){
   ctx.beginPath();ctx.ellipse(-4,-5,5,3.5,-.4,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
-  // Eyes — look direction
+  // Eyes
   const lkX=pl.vx>1.5?3:pl.vx<-1.5?-3:0;
   const lkY=pl.vy<-4?-2:1;
   ctx.fillStyle='white';
   ctx.beginPath();ctx.ellipse(-5,-3,4.2,3.8,0,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.ellipse(5,-3,4.2,3.8,0,0,Math.PI*2);ctx.fill();
-  // Pupils
   ctx.fillStyle='#002277';
   ctx.beginPath();ctx.arc(-5+lkX*.5,-3+lkY*.5,2.4,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(5+lkX*.5,-3+lkY*.5,2.4,0,Math.PI*2);ctx.fill();
-  // Eye shine
   ctx.fillStyle='white';
   ctx.beginPath();ctx.arc(-3.8+lkX*.5,-4.2+lkY*.5,.9,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(6.2+lkX*.5,-4.2+lkY*.5,.9,0,Math.PI*2);ctx.fill();
 
-  // Mouth — changes with velocity
+  // Mouth
   ctx.strokeStyle='#002277';ctx.lineWidth=1.7;ctx.lineCap='round';
   ctx.beginPath();
-  if(pl.vy<-5)       ctx.arc(0,2.5,4.5,.15,Math.PI-.15);    // big happy smile going up
-  else if(pl.vy>9)   ctx.arc(0,5.5,3.5,Math.PI+.3,2*Math.PI-.3); // scared falling
-  else               ctx.arc(0,3,4,.2,Math.PI-.2);           // normal smile
+  if(pl.vy<-5)       ctx.arc(0,2.5,4.5,.15,Math.PI-.15);    
+  else if(pl.vy>9)   ctx.arc(0,5.5,3.5,Math.PI+.3,2*Math.PI-.3); 
+  else               ctx.arc(0,3,4,.2,Math.PI-.2);           
   ctx.stroke();
 
   // Cheeks
@@ -551,7 +561,7 @@ function drawPlayer(){
     ctx.shadowBlur=0;
   }
 
-  // Double-jump ring (dashed glow when available)
+  // Double-jump ring
   if(pl.dj>0){
     ctx.globalAlpha=.35+.2*Math.sin(frame*.25);
     ctx.strokeStyle='#88ffff';ctx.lineWidth=1.5;
@@ -559,7 +569,6 @@ function drawPlayer(){
     ctx.beginPath();ctx.arc(0,0,PR+6,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);ctx.globalAlpha=1;
   }
-
   ctx.restore();
 }
 
@@ -610,42 +619,48 @@ function drawHUD(){
 
 /* ─── DRAW: GAME OVER ────────────────────────────────────── */
 function drawOver(){
-  // Dim
   ctx.fillStyle='rgba(0,0,0,.84)';ctx.fillRect(0,0,W,H);
-  // Panel
-  ctx.fillStyle='rgba(6,14,40,.96)';rr(W/2-158,H/2-168,316,310,26);ctx.fill();
+  
+  ctx.fillStyle='rgba(6,14,40,.96)';rr(W/2-158,H/2-168,316,330,26);ctx.fill();
   ctx.strokeStyle='rgba(100,160,255,.25)';ctx.lineWidth=1.5;
-  rr(W/2-158,H/2-168,316,310,26);ctx.stroke();
+  rr(W/2-158,H/2-168,316,330,26);ctx.stroke();
 
   ctx.textAlign='center';
+  
   // Title
   ctx.shadowBlur=28;ctx.shadowColor='#ff3333';
-  ctx.fillStyle='#ff4444';ctx.font='bold 46px Arial';
+  ctx.fillStyle='#ff4444';ctx.font='bold 42px Arial';
   ctx.fillText('KONIEC!',W/2,H/2-108);ctx.shadowBlur=0;
 
-  // New record badge
-  if(Math.floor(score)>=hi&&hi>0){
+  // Badge
+  if(Math.floor(score)>=hi && hi>0 || floor>=hiFloor && hiFloor>0){
     const gr2=ctx.createLinearGradient(W/2-100,0,W/2+100,0);
     gr2.addColorStop(0,'#ff9900');gr2.addColorStop(.5,'#ffd700');gr2.addColorStop(1,'#ff9900');
     ctx.fillStyle=gr2;ctx.font='bold 15px Arial';
     ctx.shadowBlur=14;ctx.shadowColor='#ffd700';
-    ctx.fillText('⭐  NOWY REKORD!  ⭐',W/2,H/2-72);ctx.shadowBlur=0;
+    ctx.fillText('⭐  NOWY REKORD!  ⭐',W/2,H/2-74);ctx.shadowBlur=0;
   }
 
-  ctx.font='bold 26px Arial';ctx.fillStyle='#ffd700';
+  // Stats
+  ctx.font='bold 22px Arial';ctx.fillStyle='#ffd700';
   ctx.fillText('Wynik: '+Math.floor(score),W/2,H/2-40);
-  ctx.font='18px Arial';ctx.fillStyle='#ffcc66';
-  ctx.fillText('🪙 Monety: '+cHeld,W/2,H/2-2);
-  ctx.fillStyle='#cc99ff';
-  ctx.fillText('⭐ Rekord: '+Math.floor(hi),W/2,H/2+30);
+  
+  ctx.font='16px Arial';ctx.fillStyle='#ffcc66';
+  ctx.fillText('🪙 Monety (wartość): '+cVal,W/2,H/2-12);
+  
+  ctx.fillStyle='#44ffaa';
+  ctx.fillText('🏢 Osiągnięte piętro: '+floor,W/2,H/2+14);
+  
+  ctx.fillStyle='#cc99ff';ctx.font='15px Arial';
+  ctx.fillText('👑 Rekord pięter: '+hiFloor+'   ⭐ Pkt: '+Math.floor(hi),W/2,H/2+42);
 
   // Platform legend
-  ctx.font='12px Arial';ctx.fillStyle='rgba(255,255,255,.5)';
-  ctx.fillText('🟢 normalna  🟣 ruchoma  🟠 sprężyna  🔴 krucha',W/2,H/2+62);
+  ctx.font='12px Arial';ctx.fillStyle='rgba(255,255,255,.4)';
+  ctx.fillText('🟢 norm.   🟣 ruchoma   🟠 sprężyna   🔴 krucha',W/2,H/2+75);
 
   // Restart button
   const pulse=.93+.07*Math.sin(frame*.12);
-  ctx.save();ctx.translate(W/2,H/2+108);ctx.scale(pulse,pulse);
+  ctx.save();ctx.translate(W/2,H/2+120);ctx.scale(pulse,pulse);
   const bg2=ctx.createLinearGradient(0,-22,0,22);
   bg2.addColorStop(0,'#0099ee');bg2.addColorStop(1,'#005599');
   ctx.fillStyle=bg2;rr(-118,-22,236,44,22);ctx.fill();
